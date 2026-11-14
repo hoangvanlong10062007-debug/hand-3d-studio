@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Hand 3D Studio</title>
+<style>
+:root{color-scheme:dark;--cyan:#54eaff;--panel:rgba(10,18,34,.82)}
+*{box-sizing:border-box}body{margin:0;background:#050914;color:#eef8ff;font:15px system-ui, sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}canvas{display:block}
+#top{position:fixed;top:env(safe-area-inset-top,10px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:3;pointer-events:none}
+.brand,.status{background:var(--panel);border:1px solid #24435b;border-radius:14px;padding:9px 12px;backdrop-filter:blur(12px);box-shadow:0 8px 30px #0005}
+.brand{font-weight:750;letter-spacing:.08em;color:var(--cyan)}.status{font-size:12px;color:#b9d3e4}
+#panel{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:4;background:var(--panel);border:1px solid #24435b;border-radius:18px;padding:12px;backdrop-filter:blur(16px)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row+ .row{margin-top:9px}
+button{border:1px solid #31556c;background:#10243a;color:#eafaff;border-radius:12px;padding:10px 13px;font-weight:650}
+button.primary{background:#087f9a;border-color:#42d9ef;color:white}
+button:disabled{opacity:.5}
+.hint{font-size:12px;color:#b8cedc;line-height:1.45;flex:1;min-width:180px}
+#camera{position:fixed;right:12px;bottom:175px;width:112px;height:148px;object-fit:cover;transform:scaleX(-1);border-radius:14px;border:1px solid #3c7188;z-index:2;opacity:.82;background:#101a29}
+#camera.hidden{display:none}
+#intro{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);width:min(88%,420px);text-align:center;color:#c5d8e8;z-index:1;pointer-events:none;text-shadow:0 2px 10px #000}
+#intro strong{display:block;font-size:clamp(23px,6vw,36px);color:white;margin-bottom:8px}
+#toast{font-size:12px;color:#ffda8a}
+@media(min-width:700px){#panel{left:50%;right:auto;transform:translateX(-50%);width:min(720px,calc(100% - 24px))}#camera{width:160px;height:210px;bottom:190px}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="top"><div class="brand">HAND 3D STUDIO</div><div class="status" id="status">Chưa bật camera</div></div>
+<div id="intro"><strong>Điều khiển 3D bằng bàn tay</strong>Nhấn “Bật camera”, cho phép truy cập camera rồi đưa bàn tay vào khung hình.</div>
+<video id="camera" class="hidden" autoplay playsinline muted></video>
+<div id="panel">
+ <div class="row">
+  <button class="primary" id="start">Bật camera</button>
+  <button id="stop" disabled>Tắt camera</button>
+  <button id="reset">Đặt lại mô hình</button>
+  <button id="camToggle">Ẩn camera nhỏ</button>
+ </div>
+ <div class="row">
+  <div class="hint"><b>Cách điều khiển:</b> Di chuyển bàn tay để xoay mô hình; chụm ngón cái + ngón trỏ để phóng to/thu nhỏ; đưa lòng bàn tay gần camera để di chuyển vật thể.</div>
+  <div id="toast">Camera cần quyền truy cập và trang HTTPS.</div>
+ </div>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","@mediapipe/tasks-vision":"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {FilesetResolver, HandLandmarker} from '@mediapipe/tasks-vision';
+
+const stage=document.querySelector('#stage'), video=document.querySelector('#camera');
+const statusEl=document.querySelector('#status'), toast=document.querySelector('#toast');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x050914);
+scene.fog=new THREE.Fog(0x050914,8,18);
+const camera3d=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100); camera3d.position.set(0,0,7);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.outputColorSpace=THREE.SRGBColorSpace; stage.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x9beaff,0x10152b,2));
+const key=new THREE.PointLight(0x45dfff,32,20); key.position.set(3,4,5); scene.add(key);
+const rim=new THREE.PointLight(0x8b55ff,22,18); rim.position.set(-4,-2,2); scene.add(rim);
+const grid=new THREE.GridHelper(18,36,0x17445b,0x10253b); grid.position.y=-2.2; scene.add(grid);
+
+const object=new THREE.Group(); scene.add(object);
+const glass=new THREE.MeshPhysicalMaterial({color:0x51d9ed,metalness:.55,roughness:.18,transparent:true,opacity:.78,clearcoat:1,emissive:0x06384a});
+const dark=new THREE.MeshStandardMaterial({color:0x172d45,metalness:.85,roughness:.25});
+const glow=new THREE.MeshStandardMaterial({color:0x8cf6ff,emissive:0x19bcd9,emissiveIntensity:2,metalness:.35,roughness:.2});
+function add(mesh,x,y,z){mesh.position.set(x,y,z);object.add(mesh);return mesh}
+// Sci-fi 3D object assembled from primitives, no external model needed.
+add(new THREE.Mesh(new THREE.CylinderGeometry(.72,.86,2.45,48,1,true),glass),0,0,0).rotation.z=Math.PI/2;
+add(new THREE.Mesh(new THREE.CylinderGeometry(.86,.72,.16,48),dark),-.98,0,0).rotation.z=Math.PI/2;
+add(new THREE.Mesh(new THREE.CylinderGeometry(.86,.72,.16,48),dark),.98,0,0).rotation.z=Math.PI/2;
+add(new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,1.1,32),dark),0,0,0).rotation.z=Math.PI/2;
+for(let i=0;i<9;i++){const x=-.78+i*.195;const ring=new THREE.Mesh(new THREE.TorusGeometry(.48,.035,8,40),i%2?glow:dark);ring.rotation.y=Math.PI/2;add(ring,x,0,0)}
+for(let i=0;i<4;i++){const fin=new THREE.Mesh(new THREE.BoxGeometry(.48,.08,.75),dark);fin.position.set(i<2?-.55:.55,i%2?-.62:.62,0);fin.rotation.z=(i%2?-.55:.55);object.add(fin)}
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.48,.85,40),glass);nose.rotation.z=-Math.PI/2;nose.position.x=1.62;object.add(nose);
+const tail=new THREE.Mesh(new THREE.ConeGeometry(.48,.75,40),dark);tail.rotation.z=Math.PI/2;tail.position.x=-1.58;object.add(tail);
+const halo=new THREE.Mesh(new THREE.TorusGeometry(2.25,.012,8,120),new THREE.MeshBasicMaterial({color:0x1c809b,transparent:true,opacity:.5}));halo.rotation.x=.9;scene.add(halo);
+const stars=new THREE.BufferGeometry();const pos=[];for(let i=0;i<500;i++)pos.push((Math.random()-.5)*22,(Math.random()-.5)*14,(Math.random()-.5)*12-3);stars.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0x80c9df,size:.018,transparent:true,opacity:.7})));
+
+let handLandmarker=null,stream=null,lastVideoTime=-1,tracking=false;
+let targetRotX=0,targetRotY=0,targetX=0,targetY=0,targetScale=1;
+let smooth={x:.5,y:.5,pinch:.18};
+function reset(){targetRotX=0;targetRotY=0;targetX=0;targetY=0;targetScale=1;object.rotation.set(0,0,0);object.position.set(0,0,0);object.scale.setScalar(1)}
+document.querySelector('#reset').onclick=reset;
+document.querySelector('#camToggle').onclick=()=>{video.classList.toggle('hidden');document.querySelector('#camToggle').textContent=video.classList.contains('hidden')?'Hiện camera nhỏ':'Ẩn camera nhỏ'};
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+async function initHands(){
+ const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+ handLandmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1});
+}
+document.querySelector('#start').onclick=async()=>{
+ try{
+  document.querySelector('#start').disabled=true;statusEl.textContent='Đang khởi tạo...';toast.textContent='Đang tải bộ nhận diện bàn tay...';
+  if(!handLandmarker) await initHands();
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+  video.srcObject=stream;await video.play();video.classList.remove('hidden');
+  document.querySelector('#stop').disabled=false;document.querySelector('#start').disabled=true;
+  statusEl.textContent='Đang tìm bàn tay';toast.textContent='Đưa một bàn tay vào camera.';
+ }catch(e){statusEl.textContent='Không bật được camera';toast.textContent='Lỗi: '+(e.message||e)+' — hãy mở bằng HTTPS và cấp quyền camera.';document.querySelector('#start').disabled=false}
+};
+document.querySelector('#stop').onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.classList.add('hidden');document.querySelector('#stop').disabled=true;document.querySelector('#start').disabled=false;statusEl.textContent='Đã tắt camera';toast.textContent='Có thể tiếp tục xoay mô hình bằng thao tác chạm/kéo.'};
+function track(){
+ if(handLandmarker&&video.readyState>=2&&video.currentTime!==lastVideoTime){
+  lastVideoTime=video.currentTime;const result=handLandmarker.detectForVideo(video,performance.now());
+  if(result.landmarks&&result.landmarks.length){
+   const lm=result.landmarks[0],palm=lm[9],thumb=lm[4],index=lm[8];
+   const px=1-palm.x,py=palm.y,pinch=dist(thumb,index);
+   smooth.x+=(px-smooth.x)*.25;smooth.y+=(py-smooth.y)*.25;smooth.pinch+=(pinch-smooth.pinch)*.25;
+   targetRotY=(smooth.x-.5)*Math.PI*2;targetRotX=(smooth.y-.5)*Math.PI*1.5;
+   targetX=(.5-smooth.x)*2.5;targetY=(.5-smooth.y)*1.5;
+   targetScale=THREE.MathUtils.clamp(0.65+(smooth.pinch-.025)*5,0.65,1.8);
+   tracking=true;statusEl.textContent='Đã nhận diện bàn tay';
+  }else{tracking=false;statusEl.textContent='Đưa tay vào khung hình'}
+ }
+}
+let pointerDown=false,lastX=0,lastY=0;
+renderer.domElement.addEventListener('pointerdown',e=>{pointerDown=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!pointerDown)return;targetRotY+=(e.clientX-lastX)*.008;targetRotX+=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY});
+renderer.domElement.addEventListener('pointerup',()=>pointerDown=false);
+renderer.domElement.addEventListener('wheel',e=>{targetScale=THREE.MathUtils.clamp(targetScale-e.deltaY*.001,.5,2.2)});
+function animate(){
+ requestAnimationFrame(animate);track();
+ object.rotation.x+=(targetRotX-object.rotation.x)*.12;object.rotation.y+=(targetRotY-object.rotation.y)*.12;
+ object.position.x+=(targetX-object.position.x)*.12;object.position.y+=(targetY-object.position.y)*.12;
+ const s=object.scale.x+(targetScale-object.scale.x)*.12;object.scale.setScalar(s);
+ halo.rotation.z+=.0015;renderer.render(scene,camera3d);
+}
+animate();
+addEventListener('resize',()=>{camera3d.aspect=innerWidth/innerHeight;camera3d.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
+</script>
+</body></html>
