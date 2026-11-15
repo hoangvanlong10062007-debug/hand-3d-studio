@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#050914">
-<title>Hand 3D Studio V2</title>
+<title>Hand 3D Studio Touch</title>
 <style>
 :root{color-scheme:dark;--cyan:#54eaff;--panel:rgba(8,17,32,.9);--line:#28516a}
 *{box-sizing:border-box}
@@ -13,9 +13,6 @@ body{margin:0;background:#050914;color:#eef8ff;font:15px system-ui,-apple-system
 #top{position:fixed;top:env(safe-area-inset-top,8px);left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5;pointer-events:none}
 .brand,.status{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:8px 11px;backdrop-filter:blur(12px);box-shadow:0 8px 30px #0005}
 .brand{font-weight:800;letter-spacing:.07em;color:var(--cyan);font-size:13px}.status{font-size:11px;color:#c4dbe9}
-#cameraBox{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 58px);width:clamp(158px,38vw,205px);height:clamp(205px,49vw,265px);z-index:4;border:1px solid #50d9ef;border-radius:16px;overflow:hidden;background:#101a29;box-shadow:0 8px 28px #0008}
-#camera{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-#camLabel{position:absolute;left:7px;bottom:6px;background:#06111dcc;border:1px solid #2b7185;border-radius:8px;padding:4px 7px;font-size:10px;color:#bcefff}
 #intro{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(84%,420px);text-align:center;color:#c5d8e8;z-index:1;pointer-events:none;text-shadow:0 2px 10px #000}
 #intro strong{display:block;font-size:clamp(22px,6vw,34px);color:white;margin-bottom:8px}
 #panel{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:10px;backdrop-filter:blur(16px);box-shadow:0 10px 35px #0008;max-height:42vh;overflow:auto}
@@ -34,30 +31,28 @@ select{flex:1;min-width:130px}
 </head>
 <body>
 <div id="stage"></div>
-<div id="top"><div class="brand">HAND 3D STUDIO <span style="color:#fff">V2</span></div><div class="status" id="status">Chưa bật camera</div></div>
-<div id="cameraBox" class="hidden"><video id="camera" autoplay playsinline muted></video><button id="camHide">Ẩn</button><div id="camLabel">CAMERA • HAND TRACKING</div></div>
-<div id="intro"><strong>Điều khiển 3D bằng bàn tay</strong>Chọn mô hình, bật camera và đưa bàn tay vào khung hình.</div>
+<div id="top"><div class="brand">HAND 3D STUDIO <span style="color:#fff">TOUCH</span></div><div class="status" id="status">Chưa bật camera</div></div>
+ 
+<div id="intro"><strong>Điều khiển mô hình 3D bằng cảm ứng</strong>Chọn mô hình rồi dùng ngón tay trực tiếp trên màn hình.</div>
 <div id="panel">
  <div class="row">
-  <button class="primary" id="start">Bật camera</button><button id="stop" disabled>Tắt</button><button id="reset">Đặt lại</button>
+  <button id="reset">Đặt lại</button>
   <select id="model" aria-label="Chọn mô hình">
    <option value="ship">Phi thuyền</option><option value="planet">Hành tinh</option><option value="atom">Nguyên tử</option><option value="knot">Khối xoắn 3D</option><option value="crystal">Pha lê</option>
   </select>
  </div>
  <div class="row">
-  <div class="small"><b>Cử chỉ:</b> Di chuyển lòng bàn tay để xoay/di chuyển; chụm ngón cái–trỏ để zoom; xòe bàn tay để bật/tắt xoay tự động; nắm tay để giữ mô hình.</div>
-  <div id="gesture">Chưa nhận diện</div>
+  <div class="small"><b>Cảm ứng:</b> Kéo 1 ngón để xoay mô hình; dùng 2 ngón chụm/mở để phóng to/thu nhỏ; kéo 2 ngón để di chuyển mô hình. Có thể dùng nút Đặt lại để quay về ban đầu.</div>
+  <div id="gesture">Điều khiển cảm ứng</div>
  </div>
- <div class="row"><div id="toast">Camera cần quyền truy cập. Hãy mở website bằng HTTPS.</div></div>
+ <div class="row"><div id="toast">Chế độ cảm ứng • Không cần camera hoặc quyền truy cập camera.</div></div>
 </div>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","@mediapipe/tasks-vision":"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm"}}
 </script>
 <script type="module">
 import * as THREE from 'three';
-import {FilesetResolver,HandLandmarker} from '@mediapipe/tasks-vision';
-
-const $=s=>document.querySelector(s),stage=$('#stage'),video=$('#camera');
+const $=s=>document.querySelector(s),stage=$('#stage');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x050914);scene.fog=new THREE.Fog(0x050914,9,20);
 const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);cam.position.set(0,0,7.5);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
@@ -101,63 +96,64 @@ setModel('ship');$('#model').addEventListener('change',e=>setModel(e.target.valu
 const halo=new THREE.Mesh(new THREE.TorusGeometry(2.35,.012,8,120),new THREE.MeshBasicMaterial({color:0x1c809b,transparent:true,opacity:.5}));halo.rotation.x=.9;scene.add(halo);
 const starGeo=new THREE.BufferGeometry(),starPos=[];for(let i=0;i<450;i++)starPos.push((Math.random()-.5)*22,(Math.random()-.5)*14,(Math.random()-.5)*12-3);starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPos,3));scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x80c9df,size:.018,transparent:true,opacity:.7})));
 
-let landmarker=null,stream=null,lastTime=-1,paused=false,autoSpin=true,handSeen=false;
-let tx=0,ty=0,tpx=0,tpy=0,scaleTarget=1;
-let smooth={x:.5,y:.5,pinch:.16};let lastGesture='';let gestureFrames=0,lastToggle=0;
-const clamp=THREE.MathUtils.clamp;
-function reset(){tx=ty=tpx=tpy=0;scaleTarget=1;group.rotation.set(0,0,0);group.position.set(0,0,0);group.scale.setScalar(1);autoSpin=true;paused=false}
+let paused=false;
+function reset(){group.rotation.set(0,0,0);group.position.set(0,0,0);group.scale.setScalar(1)}
 $('#reset').onclick=reset;
-$('#camHide').onclick=()=>{$('#cameraBox').classList.add('hidden')};
-async function loadModel(){
- const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
- landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1});
-}
-function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function fingerUp(lm,tip,pip){return d(lm[tip],lm[0])>d(lm[pip],lm[0])*1.12}
-function processHand(){
- if(!landmarker||video.readyState<2||video.currentTime===lastTime)return;
- lastTime=video.currentTime;const res=landmarker.detectForVideo(video,performance.now());
- if(!res.landmarks?.length){handSeen=false;$('#status').textContent='Đưa tay vào camera';$('#gesture').textContent='Chưa nhận diện';return}
- const lm=res.landmarks[0],palm=lm[9],thumb=lm[4],index=lm[8];
- const x=1-palm.x,y=palm.y,pinch=d(thumb,index);
- smooth.x+=(x-smooth.x)*.24;smooth.y+=(y-smooth.y)*.24;smooth.pinch+=(pinch-smooth.pinch)*.24;
- const indexUp=fingerUp(lm,8,6),middleUp=fingerUp(lm,12,10),ringUp=fingerUp(lm,16,14),pinkyUp=fingerUp(lm,20,18);
- const count=[indexUp,middleUp,ringUp,pinkyUp].filter(Boolean).length;
- let gesture='Di chuyển tay';
- if(smooth.pinch<.075)gesture='Chụm ngón: phóng to/thu nhỏ';
- else if(count===4)gesture='Xòe bàn tay: bật/tắt xoay tự động';
- else if(count===0)gesture='Nắm tay: giữ mô hình';
- else if(indexUp&&middleUp&&!ringUp&&!pinkyUp)gesture='Hai ngón: điều khiển xoay';
- if(gesture===lastGesture)gestureFrames++;else{lastGesture=gesture;gestureFrames=0}
- if(gestureFrames===8){
-  if(count===4&&smooth.pinch>.09){autoSpin=!autoSpin;lastToggle=performance.now()}
-  if(count===0){paused=true;lastToggle=performance.now()}
+$('#status').textContent='Chế độ cảm ứng';
+const activePointers=new Map();
+let prevPointer=null,prevPinch=null,prevCenter=null;
+function pointerDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function pointerCenter(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+renderer.domElement.addEventListener('pointerdown',e=>{
+ renderer.domElement.setPointerCapture(e.pointerId);
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ prevPointer={x:e.clientX,y:e.clientY};
+ if(activePointers.size===2){
+  const pts=[...activePointers.values()];
+  prevPinch=pointerDistance(pts[0],pts[1]);
+  prevCenter=pointerCenter(pts[0],pts[1]);
  }
- if(count>0&&gesture!=='Nắm tay: giữ mô hình')paused=false;
- tx=(smooth.x-.5)*Math.PI*2;ty=(smooth.y-.5)*Math.PI*1.5;
- tpx=(.5-smooth.x)*2.25;tpy=(.5-smooth.y)*1.35;
- scaleTarget=clamp(.62+(smooth.pinch-.025)*5.1,.62,1.9);
- handSeen=true;$('#status').textContent='Đã nhận diện bàn tay';$('#gesture').textContent=gesture+(paused?' • Đang giữ':autoSpin?' • Tự xoay':' • Tự xoay tắt');
+ $('#gesture').textContent=activePointers.size===1?'Kéo để xoay':'Hai ngón: zoom và di chuyển';
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(!activePointers.has(e.pointerId))return;
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(activePointers.size===1){
+  const p=activePointers.get(e.pointerId);
+  if(prevPointer){
+   group.rotation.y+=(p.x-prevPointer.x)*.009;
+   group.rotation.x+=(p.y-prevPointer.y)*.009;
+  }
+  prevPointer=p;
+ }else if(activePointers.size>=2){
+  const pts=[...activePointers.values()].slice(0,2);
+  const distance=pointerDistance(pts[0],pts[1]);
+  const center=pointerCenter(pts[0],pts[1]);
+  if(prevPinch!==null&&prevPinch>0){
+   const ratio=distance/prevPinch;
+   const next=THREE.MathUtils.clamp(group.scale.x*ratio,.35,3);
+   group.scale.setScalar(next);
+  }
+  if(prevCenter){
+   group.position.x+=(center.x-prevCenter.x)*.006;
+   group.position.y-=(center.y-prevCenter.y)*.006;
+  }
+  prevPinch=distance;prevCenter=center;
+ }
+});
+function releasePointer(e){
+ activePointers.delete(e.pointerId);
+ prevPointer=null;
+ if(activePointers.size<2){prevPinch=null;prevCenter=null}
+ $('#gesture').textContent='Điều khiển cảm ứng';
 }
-$('#start').onclick=async()=>{
- try{$('#start').disabled=true;$('#status').textContent='Đang khởi tạo';$('#toast').textContent='Đang tải bộ nhận diện bàn tay...';
- if(!landmarker)await loadModel();
- stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:720}},audio:false});
- video.srcObject=stream;await video.play();$('#cameraBox').classList.remove('hidden');$('#stop').disabled=false;$('#toast').textContent='Đưa bàn tay vào khung camera lớn ở góc trên bên phải.';$('#status').textContent='Đang tìm bàn tay';
- }catch(e){$('#status').textContent='Không bật được camera';$('#toast').textContent='Lỗi: '+(e.message||e)+' — cần HTTPS và quyền camera.';$('#start').disabled=false}
-};
-$('#stop').onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;$('#cameraBox').classList.add('hidden');$('#stop').disabled=true;$('#start').disabled=false;$('#status').textContent='Đã tắt camera';$('#toast').textContent='Có thể dùng thao tác chạm để xoay mô hình.'};
-let down=false,lx=0,ly=0;
-renderer.domElement.addEventListener('pointerdown',e=>{down=true;lx=e.clientX;ly=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
-renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;tx+=(e.clientX-lx)*.008;ty+=(e.clientY-ly)*.008;lx=e.clientX;ly=e.clientY});
-renderer.domElement.addEventListener('pointerup',()=>down=false);
-renderer.domElement.addEventListener('wheel',e=>{scaleTarget=clamp(scaleTarget-e.deltaY*.001,.5,2.2)});
-function animate(){requestAnimationFrame(animate);processHand();
- group.rotation.x+=(ty-group.rotation.x)*.1;group.rotation.y+=(tx-group.rotation.y)*.1;
- if(autoSpin&&!paused&&!handSeen)group.rotation.y+=.002;
- group.position.x+=(tpx-group.position.x)*.1;group.position.y+=(tpy-group.position.y)*.1;
- const s=group.scale.x+(scaleTarget-group.scale.x)*.12;group.scale.setScalar(s);
- halo.rotation.z+=.0012;renderer.render(scene,cam)}
+renderer.domElement.addEventListener('pointerup',releasePointer);
+renderer.domElement.addEventListener('pointercancel',releasePointer);
+renderer.domElement.addEventListener('wheel',e=>{
+ const next=THREE.MathUtils.clamp(group.scale.x-e.deltaY*.001,.35,3);
+ group.scale.setScalar(next);
+},{passive:true});
+function animate(){requestAnimationFrame(animate);halo.rotation.z+=.0012;renderer.render(scene,cam)}
 animate();
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
 </script>
