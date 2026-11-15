@@ -3,129 +3,162 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Hand 3D Studio</title>
+<meta name="theme-color" content="#050914">
+<title>Hand 3D Studio V2</title>
 <style>
-:root{color-scheme:dark;--cyan:#54eaff;--panel:rgba(10,18,34,.82)}
-*{box-sizing:border-box}body{margin:0;background:#050914;color:#eef8ff;font:15px system-ui, sans-serif;overflow:hidden}
-#stage{position:fixed;inset:0}canvas{display:block}
-#top{position:fixed;top:env(safe-area-inset-top,10px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:3;pointer-events:none}
-.brand,.status{background:var(--panel);border:1px solid #24435b;border-radius:14px;padding:9px 12px;backdrop-filter:blur(12px);box-shadow:0 8px 30px #0005}
-.brand{font-weight:750;letter-spacing:.08em;color:var(--cyan)}.status{font-size:12px;color:#b9d3e4}
-#panel{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:4;background:var(--panel);border:1px solid #24435b;border-radius:18px;padding:12px;backdrop-filter:blur(16px)}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row+ .row{margin-top:9px}
-button{border:1px solid #31556c;background:#10243a;color:#eafaff;border-radius:12px;padding:10px 13px;font-weight:650}
+:root{color-scheme:dark;--cyan:#54eaff;--panel:rgba(8,17,32,.9);--line:#28516a}
+*{box-sizing:border-box}
+body{margin:0;background:#050914;color:#eef8ff;font:15px system-ui,-apple-system,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}canvas{display:block;touch-action:none}
+#top{position:fixed;top:env(safe-area-inset-top,8px);left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5;pointer-events:none}
+.brand,.status{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:8px 11px;backdrop-filter:blur(12px);box-shadow:0 8px 30px #0005}
+.brand{font-weight:800;letter-spacing:.07em;color:var(--cyan);font-size:13px}.status{font-size:11px;color:#c4dbe9}
+#cameraBox{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 58px);width:clamp(158px,38vw,205px);height:clamp(205px,49vw,265px);z-index:4;border:1px solid #50d9ef;border-radius:16px;overflow:hidden;background:#101a29;box-shadow:0 8px 28px #0008}
+#camera{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#camLabel{position:absolute;left:7px;bottom:6px;background:#06111dcc;border:1px solid #2b7185;border-radius:8px;padding:4px 7px;font-size:10px;color:#bcefff}
+#intro{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(84%,420px);text-align:center;color:#c5d8e8;z-index:1;pointer-events:none;text-shadow:0 2px 10px #000}
+#intro strong{display:block;font-size:clamp(22px,6vw,34px);color:white;margin-bottom:8px}
+#panel{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:10px;backdrop-filter:blur(16px);box-shadow:0 10px 35px #0008;max-height:42vh;overflow:auto}
+.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.row+.row{margin-top:8px}
+button,select{border:1px solid #31556c;background:#10243a;color:#eafaff;border-radius:11px;padding:9px 11px;font:600 13px system-ui;min-height:38px}
 button.primary{background:#087f9a;border-color:#42d9ef;color:white}
 button:disabled{opacity:.5}
-.hint{font-size:12px;color:#b8cedc;line-height:1.45;flex:1;min-width:180px}
-#camera{position:fixed;right:12px;bottom:175px;width:112px;height:148px;object-fit:cover;transform:scaleX(-1);border-radius:14px;border:1px solid #3c7188;z-index:2;opacity:.82;background:#101a29}
-#camera.hidden{display:none}
-#intro{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);width:min(88%,420px);text-align:center;color:#c5d8e8;z-index:1;pointer-events:none;text-shadow:0 2px 10px #000}
-#intro strong{display:block;font-size:clamp(23px,6vw,36px);color:white;margin-bottom:8px}
-#toast{font-size:12px;color:#ffda8a}
-@media(min-width:700px){#panel{left:50%;right:auto;transform:translateX(-50%);width:min(720px,calc(100% - 24px))}#camera{width:160px;height:210px;bottom:190px}}
+select{flex:1;min-width:130px}
+.small{font-size:11px;color:#b8cedc;line-height:1.4;flex:1;min-width:180px}
+#gesture{color:#9ceeff;font-weight:700;font-size:12px}
+#toast{font-size:11px;color:#ffda8a}
+#camHide{position:absolute;right:6px;top:6px;padding:4px 7px;min-height:0;background:#06111dcc;font-size:10px}
+.hidden{display:none!important}
+@media(min-width:760px){#panel{left:50%;right:auto;transform:translateX(-50%);width:min(760px,calc(100% - 24px));max-height:34vh}#cameraBox{width:220px;height:285px;right:20px;top:70px}}
 </style>
 </head>
 <body>
 <div id="stage"></div>
-<div id="top"><div class="brand">HAND 3D STUDIO</div><div class="status" id="status">Chưa bật camera</div></div>
-<div id="intro"><strong>Điều khiển 3D bằng bàn tay</strong>Nhấn “Bật camera”, cho phép truy cập camera rồi đưa bàn tay vào khung hình.</div>
-<video id="camera" class="hidden" autoplay playsinline muted></video>
+<div id="top"><div class="brand">HAND 3D STUDIO <span style="color:#fff">V2</span></div><div class="status" id="status">Chưa bật camera</div></div>
+<div id="cameraBox" class="hidden"><video id="camera" autoplay playsinline muted></video><button id="camHide">Ẩn</button><div id="camLabel">CAMERA • HAND TRACKING</div></div>
+<div id="intro"><strong>Điều khiển 3D bằng bàn tay</strong>Chọn mô hình, bật camera và đưa bàn tay vào khung hình.</div>
 <div id="panel">
  <div class="row">
-  <button class="primary" id="start">Bật camera</button>
-  <button id="stop" disabled>Tắt camera</button>
-  <button id="reset">Đặt lại mô hình</button>
-  <button id="camToggle">Ẩn camera nhỏ</button>
+  <button class="primary" id="start">Bật camera</button><button id="stop" disabled>Tắt</button><button id="reset">Đặt lại</button>
+  <select id="model" aria-label="Chọn mô hình">
+   <option value="ship">Phi thuyền</option><option value="planet">Hành tinh</option><option value="atom">Nguyên tử</option><option value="knot">Khối xoắn 3D</option><option value="crystal">Pha lê</option>
+  </select>
  </div>
  <div class="row">
-  <div class="hint"><b>Cách điều khiển:</b> Di chuyển bàn tay để xoay mô hình; chụm ngón cái + ngón trỏ để phóng to/thu nhỏ; đưa lòng bàn tay gần camera để di chuyển vật thể.</div>
-  <div id="toast">Camera cần quyền truy cập và trang HTTPS.</div>
+  <div class="small"><b>Cử chỉ:</b> Di chuyển lòng bàn tay để xoay/di chuyển; chụm ngón cái–trỏ để zoom; xòe bàn tay để bật/tắt xoay tự động; nắm tay để giữ mô hình.</div>
+  <div id="gesture">Chưa nhận diện</div>
  </div>
+ <div class="row"><div id="toast">Camera cần quyền truy cập. Hãy mở website bằng HTTPS.</div></div>
 </div>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","@mediapipe/tasks-vision":"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm"}}
 </script>
 <script type="module">
 import * as THREE from 'three';
-import {FilesetResolver, HandLandmarker} from '@mediapipe/tasks-vision';
+import {FilesetResolver,HandLandmarker} from '@mediapipe/tasks-vision';
 
-const stage=document.querySelector('#stage'), video=document.querySelector('#camera');
-const statusEl=document.querySelector('#status'), toast=document.querySelector('#toast');
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x050914);
-scene.fog=new THREE.Fog(0x050914,8,18);
-const camera3d=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100); camera3d.position.set(0,0,7);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.outputColorSpace=THREE.SRGBColorSpace; stage.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0x9beaff,0x10152b,2));
-const key=new THREE.PointLight(0x45dfff,32,20); key.position.set(3,4,5); scene.add(key);
-const rim=new THREE.PointLight(0x8b55ff,22,18); rim.position.set(-4,-2,2); scene.add(rim);
-const grid=new THREE.GridHelper(18,36,0x17445b,0x10253b); grid.position.y=-2.2; scene.add(grid);
+const $=s=>document.querySelector(s),stage=$('#stage'),video=$('#camera');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x050914);scene.fog=new THREE.Fog(0x050914,9,20);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);cam.position.set(0,0,7.5);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xa5efff,0x10152b,2));
+const light=new THREE.PointLight(0x45dfff,35,22);light.position.set(3,4,5);scene.add(light);
+const violet=new THREE.PointLight(0x9255ff,24,20);violet.position.set(-4,-2,3);scene.add(violet);
+const grid=new THREE.GridHelper(18,36,0x17445b,0x10253b);grid.position.y=-2.3;scene.add(grid);
+const group=new THREE.Group();scene.add(group);
+const matGlass=new THREE.MeshPhysicalMaterial({color:0x51d9ed,metalness:.5,roughness:.18,transparent:true,opacity:.78,clearcoat:1,emissive:0x06384a});
+const matDark=new THREE.MeshStandardMaterial({color:0x172d45,metalness:.85,roughness:.24});
+const matGlow=new THREE.MeshStandardMaterial({color:0x8cf6ff,emissive:0x19bcd9,emissiveIntensity:1.8,metalness:.4,roughness:.2});
+const matPurple=new THREE.MeshStandardMaterial({color:0x987cff,emissive:0x321080,emissiveIntensity:.8,metalness:.45,roughness:.22});
+function mesh(geo,mat,x=0,y=0,z=0,parent=group){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m}
+function clearGroup(){while(group.children.length){const o=group.children.pop();o.traverse?.(n=>{if(n.geometry)n.geometry.dispose()})}}
+function buildShip(){
+ mesh(new THREE.CylinderGeometry(.72,.86,2.35,48,1,true),matGlass).rotation.z=Math.PI/2;
+ mesh(new THREE.CylinderGeometry(.86,.72,.16,48),matDark,-.96).rotation.z=Math.PI/2;
+ mesh(new THREE.CylinderGeometry(.86,.72,.16,48),matDark,.96).rotation.z=Math.PI/2;
+ mesh(new THREE.CylinderGeometry(.42,.42,1.05,32),matDark).rotation.z=Math.PI/2;
+ for(let i=0;i<9;i++){let r=mesh(new THREE.TorusGeometry(.48,.032,8,40),i%2?matGlow:matDark,-.76+i*.19);r.rotation.y=Math.PI/2}
+ for(let i=0;i<4;i++){let f=mesh(new THREE.BoxGeometry(.48,.08,.72),matDark,i<2?-.52:.52,i%2?-.62:.62);f.rotation.z=i%2?-.55:.55}
+ let n=mesh(new THREE.ConeGeometry(.46,.8,40),matGlass,1.55);n.rotation.z=-Math.PI/2;
+ let t=mesh(new THREE.ConeGeometry(.45,.72,40),matDark,-1.5);t.rotation.z=Math.PI/2;
+}
+function buildPlanet(){
+ mesh(new THREE.SphereGeometry(1.05,64,48),new THREE.MeshPhysicalMaterial({color:0x277dbb,metalness:.25,roughness:.35,emissive:0x06243d}));
+ let ring=mesh(new THREE.TorusGeometry(1.55,.12,16,120),matGlow);ring.rotation.set(.9,.25,.2);
+ let ring2=mesh(new THREE.TorusGeometry(1.8,.025,8,120),matPurple);ring2.rotation.set(.9,.25,.2);
+ for(let i=0;i<4;i++){let moon=mesh(new THREE.SphereGeometry(.12,20,16),matGlass,Math.cos(i*Math.PI/2)*2.1,Math.sin(i*Math.PI/2)*.5,Math.sin(i*Math.PI/2)*1.3)}
+}
+function buildAtom(){
+ mesh(new THREE.SphereGeometry(.35,32,24),matGlow);
+ for(let i=0;i<3;i++){let e=mesh(new THREE.TorusGeometry(1.5,.035,8,100),i===1?matPurple:matGlow);e.rotation.set(i*.95,(i+1)*.65,i*.5)}
+ for(let i=0;i<6;i++)mesh(new THREE.SphereGeometry(.11,20,16),matGlass,Math.cos(i*Math.PI/3)*1.5,Math.sin(i*Math.PI/3)*.55,Math.sin(i*Math.PI/3)*1.2);
+}
+function buildKnot(){mesh(new THREE.TorusKnotGeometry(.95,.3,180,24,2,3),new THREE.MeshPhysicalMaterial({color:0x4bd9ec,metalness:.65,roughness:.18,clearcoat:1}));let h=mesh(new THREE.TorusGeometry(1.65,.018,8,120),matPurple);h.rotation.x=1.1}
+function buildCrystal(){let g=new THREE.IcosahedronGeometry(1.25,1);mesh(g,new THREE.MeshPhysicalMaterial({color:0x8c7cff,metalness:.35,roughness:.12,transmission:.35,transparent:true,opacity:.82,emissive:0x1c0c45,wireframe:false}));let w=mesh(new THREE.IcosahedronGeometry(1.32,1),matGlow);w.material=matGlow;w.material.wireframe=true}
+const builders={ship:buildShip,planet:buildPlanet,atom:buildAtom,knot:buildKnot,crystal:buildCrystal};
+function setModel(v){clearGroup();builders[v]();group.scale.setScalar(1);group.position.set(0,0,0);$('#intro').classList.add('hidden')}
+setModel('ship');$('#model').addEventListener('change',e=>setModel(e.target.value));
+const halo=new THREE.Mesh(new THREE.TorusGeometry(2.35,.012,8,120),new THREE.MeshBasicMaterial({color:0x1c809b,transparent:true,opacity:.5}));halo.rotation.x=.9;scene.add(halo);
+const starGeo=new THREE.BufferGeometry(),starPos=[];for(let i=0;i<450;i++)starPos.push((Math.random()-.5)*22,(Math.random()-.5)*14,(Math.random()-.5)*12-3);starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPos,3));scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x80c9df,size:.018,transparent:true,opacity:.7})));
 
-const object=new THREE.Group(); scene.add(object);
-const glass=new THREE.MeshPhysicalMaterial({color:0x51d9ed,metalness:.55,roughness:.18,transparent:true,opacity:.78,clearcoat:1,emissive:0x06384a});
-const dark=new THREE.MeshStandardMaterial({color:0x172d45,metalness:.85,roughness:.25});
-const glow=new THREE.MeshStandardMaterial({color:0x8cf6ff,emissive:0x19bcd9,emissiveIntensity:2,metalness:.35,roughness:.2});
-function add(mesh,x,y,z){mesh.position.set(x,y,z);object.add(mesh);return mesh}
-// Sci-fi 3D object assembled from primitives, no external model needed.
-add(new THREE.Mesh(new THREE.CylinderGeometry(.72,.86,2.45,48,1,true),glass),0,0,0).rotation.z=Math.PI/2;
-add(new THREE.Mesh(new THREE.CylinderGeometry(.86,.72,.16,48),dark),-.98,0,0).rotation.z=Math.PI/2;
-add(new THREE.Mesh(new THREE.CylinderGeometry(.86,.72,.16,48),dark),.98,0,0).rotation.z=Math.PI/2;
-add(new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,1.1,32),dark),0,0,0).rotation.z=Math.PI/2;
-for(let i=0;i<9;i++){const x=-.78+i*.195;const ring=new THREE.Mesh(new THREE.TorusGeometry(.48,.035,8,40),i%2?glow:dark);ring.rotation.y=Math.PI/2;add(ring,x,0,0)}
-for(let i=0;i<4;i++){const fin=new THREE.Mesh(new THREE.BoxGeometry(.48,.08,.75),dark);fin.position.set(i<2?-.55:.55,i%2?-.62:.62,0);fin.rotation.z=(i%2?-.55:.55);object.add(fin)}
-const nose=new THREE.Mesh(new THREE.ConeGeometry(.48,.85,40),glass);nose.rotation.z=-Math.PI/2;nose.position.x=1.62;object.add(nose);
-const tail=new THREE.Mesh(new THREE.ConeGeometry(.48,.75,40),dark);tail.rotation.z=Math.PI/2;tail.position.x=-1.58;object.add(tail);
-const halo=new THREE.Mesh(new THREE.TorusGeometry(2.25,.012,8,120),new THREE.MeshBasicMaterial({color:0x1c809b,transparent:true,opacity:.5}));halo.rotation.x=.9;scene.add(halo);
-const stars=new THREE.BufferGeometry();const pos=[];for(let i=0;i<500;i++)pos.push((Math.random()-.5)*22,(Math.random()-.5)*14,(Math.random()-.5)*12-3);stars.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0x80c9df,size:.018,transparent:true,opacity:.7})));
-
-let handLandmarker=null,stream=null,lastVideoTime=-1,tracking=false;
-let targetRotX=0,targetRotY=0,targetX=0,targetY=0,targetScale=1;
-let smooth={x:.5,y:.5,pinch:.18};
-function reset(){targetRotX=0;targetRotY=0;targetX=0;targetY=0;targetScale=1;object.rotation.set(0,0,0);object.position.set(0,0,0);object.scale.setScalar(1)}
-document.querySelector('#reset').onclick=reset;
-document.querySelector('#camToggle').onclick=()=>{video.classList.toggle('hidden');document.querySelector('#camToggle').textContent=video.classList.contains('hidden')?'Hiện camera nhỏ':'Ẩn camera nhỏ'};
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-async function initHands(){
+let landmarker=null,stream=null,lastTime=-1,paused=false,autoSpin=true,handSeen=false;
+let tx=0,ty=0,tpx=0,tpy=0,scaleTarget=1;
+let smooth={x:.5,y:.5,pinch:.16};let lastGesture='';let gestureFrames=0,lastToggle=0;
+const clamp=THREE.MathUtils.clamp;
+function reset(){tx=ty=tpx=tpy=0;scaleTarget=1;group.rotation.set(0,0,0);group.position.set(0,0,0);group.scale.setScalar(1);autoSpin=true;paused=false}
+$('#reset').onclick=reset;
+$('#camHide').onclick=()=>{$('#cameraBox').classList.add('hidden')};
+async function loadModel(){
  const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
- handLandmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1});
+ landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1});
 }
-document.querySelector('#start').onclick=async()=>{
- try{
-  document.querySelector('#start').disabled=true;statusEl.textContent='Đang khởi tạo...';toast.textContent='Đang tải bộ nhận diện bàn tay...';
-  if(!handLandmarker) await initHands();
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
-  video.srcObject=stream;await video.play();video.classList.remove('hidden');
-  document.querySelector('#stop').disabled=false;document.querySelector('#start').disabled=true;
-  statusEl.textContent='Đang tìm bàn tay';toast.textContent='Đưa một bàn tay vào camera.';
- }catch(e){statusEl.textContent='Không bật được camera';toast.textContent='Lỗi: '+(e.message||e)+' — hãy mở bằng HTTPS và cấp quyền camera.';document.querySelector('#start').disabled=false}
-};
-document.querySelector('#stop').onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.classList.add('hidden');document.querySelector('#stop').disabled=true;document.querySelector('#start').disabled=false;statusEl.textContent='Đã tắt camera';toast.textContent='Có thể tiếp tục xoay mô hình bằng thao tác chạm/kéo.'};
-function track(){
- if(handLandmarker&&video.readyState>=2&&video.currentTime!==lastVideoTime){
-  lastVideoTime=video.currentTime;const result=handLandmarker.detectForVideo(video,performance.now());
-  if(result.landmarks&&result.landmarks.length){
-   const lm=result.landmarks[0],palm=lm[9],thumb=lm[4],index=lm[8];
-   const px=1-palm.x,py=palm.y,pinch=dist(thumb,index);
-   smooth.x+=(px-smooth.x)*.25;smooth.y+=(py-smooth.y)*.25;smooth.pinch+=(pinch-smooth.pinch)*.25;
-   targetRotY=(smooth.x-.5)*Math.PI*2;targetRotX=(smooth.y-.5)*Math.PI*1.5;
-   targetX=(.5-smooth.x)*2.5;targetY=(.5-smooth.y)*1.5;
-   targetScale=THREE.MathUtils.clamp(0.65+(smooth.pinch-.025)*5,0.65,1.8);
-   tracking=true;statusEl.textContent='Đã nhận diện bàn tay';
-  }else{tracking=false;statusEl.textContent='Đưa tay vào khung hình'}
+function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function fingerUp(lm,tip,pip){return d(lm[tip],lm[0])>d(lm[pip],lm[0])*1.12}
+function processHand(){
+ if(!landmarker||video.readyState<2||video.currentTime===lastTime)return;
+ lastTime=video.currentTime;const res=landmarker.detectForVideo(video,performance.now());
+ if(!res.landmarks?.length){handSeen=false;$('#status').textContent='Đưa tay vào camera';$('#gesture').textContent='Chưa nhận diện';return}
+ const lm=res.landmarks[0],palm=lm[9],thumb=lm[4],index=lm[8];
+ const x=1-palm.x,y=palm.y,pinch=d(thumb,index);
+ smooth.x+=(x-smooth.x)*.24;smooth.y+=(y-smooth.y)*.24;smooth.pinch+=(pinch-smooth.pinch)*.24;
+ const indexUp=fingerUp(lm,8,6),middleUp=fingerUp(lm,12,10),ringUp=fingerUp(lm,16,14),pinkyUp=fingerUp(lm,20,18);
+ const count=[indexUp,middleUp,ringUp,pinkyUp].filter(Boolean).length;
+ let gesture='Di chuyển tay';
+ if(smooth.pinch<.075)gesture='Chụm ngón: phóng to/thu nhỏ';
+ else if(count===4)gesture='Xòe bàn tay: bật/tắt xoay tự động';
+ else if(count===0)gesture='Nắm tay: giữ mô hình';
+ else if(indexUp&&middleUp&&!ringUp&&!pinkyUp)gesture='Hai ngón: điều khiển xoay';
+ if(gesture===lastGesture)gestureFrames++;else{lastGesture=gesture;gestureFrames=0}
+ if(gestureFrames===8){
+  if(count===4&&smooth.pinch>.09){autoSpin=!autoSpin;lastToggle=performance.now()}
+  if(count===0){paused=true;lastToggle=performance.now()}
  }
+ if(count>0&&gesture!=='Nắm tay: giữ mô hình')paused=false;
+ tx=(smooth.x-.5)*Math.PI*2;ty=(smooth.y-.5)*Math.PI*1.5;
+ tpx=(.5-smooth.x)*2.25;tpy=(.5-smooth.y)*1.35;
+ scaleTarget=clamp(.62+(smooth.pinch-.025)*5.1,.62,1.9);
+ handSeen=true;$('#status').textContent='Đã nhận diện bàn tay';$('#gesture').textContent=gesture+(paused?' • Đang giữ':autoSpin?' • Tự xoay':' • Tự xoay tắt');
 }
-let pointerDown=false,lastX=0,lastY=0;
-renderer.domElement.addEventListener('pointerdown',e=>{pointerDown=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
-renderer.domElement.addEventListener('pointermove',e=>{if(!pointerDown)return;targetRotY+=(e.clientX-lastX)*.008;targetRotX+=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY});
-renderer.domElement.addEventListener('pointerup',()=>pointerDown=false);
-renderer.domElement.addEventListener('wheel',e=>{targetScale=THREE.MathUtils.clamp(targetScale-e.deltaY*.001,.5,2.2)});
-function animate(){
- requestAnimationFrame(animate);track();
- object.rotation.x+=(targetRotX-object.rotation.x)*.12;object.rotation.y+=(targetRotY-object.rotation.y)*.12;
- object.position.x+=(targetX-object.position.x)*.12;object.position.y+=(targetY-object.position.y)*.12;
- const s=object.scale.x+(targetScale-object.scale.x)*.12;object.scale.setScalar(s);
- halo.rotation.z+=.0015;renderer.render(scene,camera3d);
-}
+$('#start').onclick=async()=>{
+ try{$('#start').disabled=true;$('#status').textContent='Đang khởi tạo';$('#toast').textContent='Đang tải bộ nhận diện bàn tay...';
+ if(!landmarker)await loadModel();
+ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:720}},audio:false});
+ video.srcObject=stream;await video.play();$('#cameraBox').classList.remove('hidden');$('#stop').disabled=false;$('#toast').textContent='Đưa bàn tay vào khung camera lớn ở góc trên bên phải.';$('#status').textContent='Đang tìm bàn tay';
+ }catch(e){$('#status').textContent='Không bật được camera';$('#toast').textContent='Lỗi: '+(e.message||e)+' — cần HTTPS và quyền camera.';$('#start').disabled=false}
+};
+$('#stop').onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;$('#cameraBox').classList.add('hidden');$('#stop').disabled=true;$('#start').disabled=false;$('#status').textContent='Đã tắt camera';$('#toast').textContent='Có thể dùng thao tác chạm để xoay mô hình.'};
+let down=false,lx=0,ly=0;
+renderer.domElement.addEventListener('pointerdown',e=>{down=true;lx=e.clientX;ly=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;tx+=(e.clientX-lx)*.008;ty+=(e.clientY-ly)*.008;lx=e.clientX;ly=e.clientY});
+renderer.domElement.addEventListener('pointerup',()=>down=false);
+renderer.domElement.addEventListener('wheel',e=>{scaleTarget=clamp(scaleTarget-e.deltaY*.001,.5,2.2)});
+function animate(){requestAnimationFrame(animate);processHand();
+ group.rotation.x+=(ty-group.rotation.x)*.1;group.rotation.y+=(tx-group.rotation.y)*.1;
+ if(autoSpin&&!paused&&!handSeen)group.rotation.y+=.002;
+ group.position.x+=(tpx-group.position.x)*.1;group.position.y+=(tpy-group.position.y)*.1;
+ const s=group.scale.x+(scaleTarget-group.scale.x)*.12;group.scale.setScalar(s);
+ halo.rotation.z+=.0012;renderer.render(scene,cam)}
 animate();
-addEventListener('resize',()=>{camera3d.aspect=innerWidth/innerHeight;camera3d.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
 </script>
 </body></html>
